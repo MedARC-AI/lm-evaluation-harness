@@ -65,6 +65,7 @@ from . import scrolls
 from . import ceval
 from . import csatqa
 from . import haerae
+from . import radsum
 
 ########################################
 # Translation tasks
@@ -97,6 +98,7 @@ all_translation_benchmarks = {
 
 
 TASK_REGISTRY = {
+    "mimic_iii_sum": radsum.MimicIIISum,
     "babi": babi.Babi,
     # GLUE
     "cola": glue.CoLA,
