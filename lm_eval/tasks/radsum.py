@@ -134,7 +134,7 @@ class RadSum(Task):
 
 class MimicCXRSum(RadSum):
     VERSION = 0
-    DATASET_PATH = "mimic-cxr-rrs"
+    DATASET_PATH = "medarc/mimic-cxr-rrs"
     DATASET_NAME = None
 
     def doc_to_text(self, doc):
