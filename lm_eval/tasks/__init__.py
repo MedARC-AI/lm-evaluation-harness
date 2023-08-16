@@ -77,7 +77,6 @@ gpt3_translation_benchmarks = {
     "wmt16": ["en-ro", "ro-en", "de-en", "en-de"],  # German, Romanian
 }
 
-
 # 28 total
 selected_translation_benchmarks = {
     **gpt3_translation_benchmarks,
@@ -91,7 +90,6 @@ all_translation_benchmarks = {
     for ts in sacrebleu.get_available_testsets()
 }
 
-
 ########################################
 # All tasks
 ########################################
@@ -99,6 +97,9 @@ all_translation_benchmarks = {
 
 TASK_REGISTRY = {
     "mimic_iii_sum": radsum.MimicIIISum,
+    "consumer_health_question": radsum.ConsumerHealthQuestion,
+    "dialogue_to_note": radsum.DialogueToNoteSum,
+    "problem_list_sum": radsum.ProblemListSum,
     "babi": babi.Babi,
     # GLUE
     "cola": glue.CoLA,
@@ -329,11 +330,11 @@ TASK_REGISTRY = {
     "csatqa_rch": csatqa.RCH,
     "csatqa_li": csatqa.LI,
     "haerae_hi": haerae.HI,
-    "haerae_kgk":haerae.KGK,
-    "haerae_lw":haerae.LW,
-    "haerae_rc":haerae.RC,
-    "haerae_rw":haerae.RW,
-    "haerae_sn":haerae.SN,
+    "haerae_kgk": haerae.KGK,
+    "haerae_lw": haerae.LW,
+    "haerae_rc": haerae.RC,
+    "haerae_rw": haerae.RW,
+    "haerae_sn": haerae.SN,
     # Requires manual download
     # Requires manual download of data.
     # "storycloze_2016": storycloze.StoryCloze2016,
@@ -349,7 +350,6 @@ TASK_REGISTRY = {
     **scrolls.construct_tasks(),
     **ceval.create_all_tasks(),
 }
-
 
 ALL_TASKS = sorted(list(TASK_REGISTRY))
 

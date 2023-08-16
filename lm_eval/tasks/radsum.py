@@ -20,6 +20,16 @@ from rouge_score import rouge_scorer
 import numpy as np
 import torch.nn as nn
 import datasets
+import ast
+from radgraph import F1RadGraph
+
+
+class F1RadGraphWrapper(F1RadGraph):
+    def forward(self, items):
+        preds = list(zip(*items))[0]
+        refs = list(zip(*items))[1]
+        score = super().forward(refs=refs, hyps=preds)
+        return score[0]
 
 
 class Rouge(nn.Module):
@@ -104,6 +114,10 @@ class RadSum(Task):
             "rougeL": Rouge("rougeL"),
             "rouge1": Rouge("rouge1"),
             "rouge2": Rouge("rouge2"),
+            "rougeL-Prec": Rouge("rougeL", measure="precision"),
+            "rougeL-Rec": Rouge("rougeL", measure="recall"),
+            "rougeL-F1": Rouge("rougeL", measure="fmeasure"),
+            "F1RadGraph": F1RadGraphWrapper("simple"),
         }
 
     def higher_is_better(self):
@@ -111,6 +125,30 @@ class RadSum(Task):
             "rougeL": True,
             "rouge1": True,
             "rouge2": True,
+            "rougeL-Prec": True,
+            "rougeL-Rec": True,
+            "rougeL-F1": True,
+            "F1RadGraph": True,
+        }
+
+
+class MimicCXRSum(RadSum):
+    VERSION = 0
+    DATASET_PATH = "mimic-cxr-rrs"
+    DATASET_NAME = None
+
+    def doc_to_text(self, doc):
+        return f"Summarize these radiology report findings to impression. Findings:{doc['findings']} Impression:"
+
+    def doc_to_target(self, doc):
+        return " " + doc['impression']
+
+    def process_results(self, doc, results):
+        return {
+            "rouge1": (results, doc["impression"]),
+            "rouge2": (results, doc["impression"]),
+            "rougeL": (results, doc["impression"]),
+            "F1RadGraph": (results, doc["impression"])
         }
 
 
@@ -129,5 +167,72 @@ class MimicIIISum(RadSum):
         return {
             "rouge1": (results, doc["impression"]),
             "rouge2": (results, doc["impression"]),
-            "rougeL": (results, doc["impression"])
+            "rougeL": (results, doc["impression"]),
+            "F1RadGraph": (results, doc["impression"])
+        }
+
+
+class ProblemListSum(RadSum):
+    VERSION = 0
+    DATASET_PATH = "medarc/problem_list_summarization"
+    DATASET_NAME = None
+
+    def doc_to_text(self, doc):
+        return f"Summarize this Electronic Health Record Progress Note into " \
+               f"Active Diagnoses and Problems (at most 10, comma separated). \n" \
+               f"Progress Note:{doc['inputs']} \n" \
+               f"Active Diagnoses and Problems:"
+
+    def process_target(self, target):
+        return ",".join(ast.literal_eval(target))
+
+    def doc_to_target(self, doc):
+        return " " + self.process_target(doc["target"])
+
+    def process_results(self, doc, results):
+        return {
+            "rougeL-Prec": (results, self.process_target(doc["target"])),
+            "rougeL-Rec": (results, self.process_target(doc["target"])),
+            "rougeL-F1": (results, self.process_target(doc["target"]))
+        }
+
+
+class ConsumerHealthQuestion(RadSum):
+    VERSION = 0
+    DATASET_PATH = "medarc/consumer_health_questions"
+    DATASET_NAME = None
+
+    def doc_to_text(self, doc):
+        return f"Summarize this consumer health questions into a condensed question expressing the minimum information " \
+               f"required to find correct answers to the original question.\n" \
+               f"Consumer health questions: {doc['inputs']}\n" \
+               f"Condensed question:"
+
+    def doc_to_target(self, doc):
+        return " " + doc["target"]
+
+    def process_results(self, doc, results):
+        return {
+            "rouge1": (results, doc["target"]),
+            "rouge2": (results, doc["target"]),
+            "rougeL": (results, doc["target"])
+        }
+
+
+class DialogueToNoteSum(RadSum):
+    VERSION = 0
+    DATASET_PATH = "medarc/Dialogue2Note_Summarization"
+    DATASET_NAME = None
+
+    def doc_to_text(self, doc):
+        return f"todo"
+
+    def doc_to_target(self, doc):
+        return " " + doc["target"]
+
+    def process_results(self, doc, results):
+        return {
+            "rouge1": (results, doc["target"]),
+            "rouge2": (results, doc["target"]),
+            "rougeL": (results, doc["target"])
         }
