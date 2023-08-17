@@ -66,6 +66,7 @@ from . import ceval
 from . import csatqa
 from . import haerae
 from . import radsum
+from . import medqa_usmle
 
 ########################################
 # Translation tasks
@@ -137,6 +138,7 @@ TASK_REGISTRY = {
     "mc_taco": mc_taco.MCTACO,
     # Science related
     "pubmedqa": pubmedqa.Pubmed_QA,
+    "medqa_usmle": medqa_usmle.MedQA_USMLE,
     "sciq": sciq.SciQ,
     "qasper": qasper.QASPER,
     "qa4mre_2011": qa4mre.QA4MRE_2011,

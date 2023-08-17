@@ -9,7 +9,7 @@ from abc import ABC
 # python main.py \
 #     --model hf-causal \
 #     --model_args pretrained=EleutherAI/pythia-160m,revision=step100000,dtype="float" \
-#     --tasks mimic_iii_sum \
+#     --tasks medqa_usmle \
 #     --device cuda:0
 
 
