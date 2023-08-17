@@ -77,7 +77,6 @@ class MedMCQA(MultipleChoiceTask):
         }
 
     def doc_to_text(self, doc):
-        prompt = "The following are multiple choice questions (with answers) about medical knowledge."
         option_choices = {'A':doc["choices"][0], 'B':doc["choices"][1], 'C':doc["choices"][2], 'D':doc["choices"][3]}
         answers = "".join((f"({k}) {v}\n") for k,v in option_choices.items())
-        return f"{prompt}\nQuestion: {doc['query']}\n{answers}\nAnswer:"
+        return f"Question: {doc['query']}\n{answers}Answer:"
