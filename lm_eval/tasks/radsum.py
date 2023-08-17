@@ -225,7 +225,14 @@ class DialogueToNoteSum(RadSum):
     DATASET_NAME = None
 
     def doc_to_text(self, doc):
-        return f"todo"
+        return f"Given the dialogue between a patient and a doctor, generate " \
+               f"the Assessment and Plan section of a clinical note." \
+               f"Dialogue: {doc['inputs']}\n" \
+               f"Assessment and Plan section:"
+
+    def has_validation_docs(self):
+        """Whether the task has a validation set"""
+        return False
 
     def doc_to_target(self, doc):
         return " " + doc["target"]
