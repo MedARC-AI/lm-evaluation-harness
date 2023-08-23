@@ -94,10 +94,11 @@ all_translation_benchmarks = {
 ########################################
 # All tasks
 ########################################
-
+MimicCXRSum
 
 TASK_REGISTRY = {
     "mimic_iii_sum": radsum.MimicIIISum,
+    "mimic_cxr_sum": radsum.MimicCXRSum,
     "consumer_health_question": radsum.ConsumerHealthQuestion,
     "dialogue_to_note": radsum.DialogueToNoteSum,
     "problem_list_sum": radsum.ProblemListSum,
