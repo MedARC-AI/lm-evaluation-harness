@@ -94,10 +94,11 @@ all_translation_benchmarks = {
 ########################################
 # All tasks
 ########################################
-
+MimicCXRSum
 
 TASK_REGISTRY = {
     "mimic_iii_sum": radsum.MimicIIISum,
+    "mimic_cxr_sum": radsum.MimicCXRSum,
     "consumer_health_question": radsum.ConsumerHealthQuestion,
     "dialogue_to_note": radsum.DialogueToNoteSum,
     "problem_list_sum": radsum.ProblemListSum,
@@ -139,6 +140,7 @@ TASK_REGISTRY = {
     "mc_taco": mc_taco.MCTACO,
     # Science related
     "pubmedqa": pubmedqa.Pubmed_QA,
+    "medqa_usmle": medqa_usmle.MedQA_USMLE,
     "sciq": sciq.SciQ,
     "qasper": qasper.QASPER,
     "qa4mre_2011": qa4mre.QA4MRE_2011,
