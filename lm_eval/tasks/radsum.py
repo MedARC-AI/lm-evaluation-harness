@@ -9,7 +9,7 @@ from abc import ABC
 # python main.py \
 #     --model hf-causal \
 #     --model_args pretrained=EleutherAI/pythia-160m,revision=step100000,dtype="float" \
-#     --tasks mimic_iii_sum \
+#     --tasks medqa_usmle \
 #     --device cuda:0
 
 
@@ -134,7 +134,7 @@ class RadSum(Task):
 
 class MimicCXRSum(RadSum):
     VERSION = 0
-    DATASET_PATH = "mimic-cxr-rrs"
+    DATASET_PATH = "medarc/mimic-cxr-rrs"
     DATASET_NAME = None
 
     def doc_to_text(self, doc):
@@ -225,7 +225,14 @@ class DialogueToNoteSum(RadSum):
     DATASET_NAME = None
 
     def doc_to_text(self, doc):
-        return f"todo"
+        return f"Given the dialogue between a patient and a doctor, generate " \
+               f"the Assessment and Plan section of a clinical note." \
+               f"Dialogue: {doc['inputs']}\n" \
+               f"Assessment and Plan section:"
+
+    def has_validation_docs(self):
+        """Whether the task has a validation set"""
+        return False
 
     def doc_to_target(self, doc):
         return " " + doc["target"]
