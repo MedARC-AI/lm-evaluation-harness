@@ -63,13 +63,16 @@ class MedQA4Options(MultipleChoiceTask):
             return map(self._process_doc, self.dataset["test"])
 
     def _process_doc(self, doc):
+        def _format_question(doc):
+            option_choices = {'A':doc["ending0"], 'B':doc["ending1"], 'C':doc["ending2"], 'D':doc["ending3"]}
+            answers = "".join((f"{k}. {v}\n") for k,v in option_choices.items())
+            return f"Question: {doc['sent1']}\n{answers}Answer:"
+
         return {
-            "query": doc["sent1"],  # The query prompt.
-            "choices": [doc["ending0"], doc["ending1"], doc["ending2"], doc["ending3"]],  # The list of choices.
+            "query": _format_question(doc),  # The query prompt.
+            "choices": ['A', 'B', 'C', 'D'],  # The list of choices.
             "gold": doc["label"],  # The integer used to index into the correct element of `"choices"`.
         }
 
     def doc_to_text(self, doc):
-        option_choices = {'A':doc["choices"][0], 'B':doc["choices"][1], 'C':doc["choices"][2], 'D':doc["choices"][3]}
-        answers = "".join((f"({k}) {v}\n") for k,v in option_choices.items())
-        return f"Question: {doc['query']}\n{answers}Answer:"
+        return doc['query']
