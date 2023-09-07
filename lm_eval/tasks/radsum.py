@@ -5,7 +5,11 @@
 #     --num_fewshot 0 \
 #     --num_examples 5 \
 #     --description_dict_path test
-from abc import ABC
+# python main.py \
+#     --model hf-causal \
+#     --model_args pretrained=EleutherAI/pythia-160m \
+#     --tasks mimic_cxr_sum \
+#     --device cuda:0
 # python main.py \
 #     --model hf-causal \
 #     --model_args pretrained=EleutherAI/pythia-160m,revision=step100000,dtype="float" \
@@ -13,23 +17,53 @@ from abc import ABC
 #     --device cuda:0
 
 
+import ast
 from itertools import zip_longest
 
-from lm_eval.base import rf, Task
-from rouge_score import rouge_scorer
+import datasets
 import numpy as np
 import torch.nn as nn
-import datasets
-import ast
+from f1chexbert import F1CheXbert
+from lm_eval.base import rf, Task
 from radgraph import F1RadGraph
+from rouge_score import rouge_scorer
 
 
 class F1RadGraphWrapper(F1RadGraph):
     def forward(self, items):
-        preds = list(zip(*items))[0]
-        refs = list(zip(*items))[1]
+        preds = [item[0] for item in items]
+        refs = [item[1] for item in items]
         score = super().forward(refs=refs, hyps=preds)
         return score[0]
+
+
+class F1CheXbertWrapper(F1CheXbert):
+    _instance = None
+    _results_cache = None
+
+    def __new__(cls, *args, **kwargs):
+        # If the _instance does not exist, create it
+        if not cls._instance:
+            cls._instance = super(F1CheXbertWrapper, cls).__new__(cls)
+        return cls._instance
+
+    def forward(self, items, key):
+        # If the results are already computed, return them
+        if self._results_cache:
+            return self._results_cache[key]
+
+        preds = [item[0] for item in items]
+        refs = [item[1] for item in items]
+        accuracy, accuracy_per_sample, chexbert_all, chexbert_5 = super().forward(refs=refs, hyps=preds)
+
+        self._results_cache = {
+            "chexbert-5_micro avg_f1-score": chexbert_5["micro avg"]["f1-score"],
+            "chexbert-all_micro avg_f1-score": chexbert_all["micro avg"]["f1-score"],
+            "chexbert-5_macro avg_f1-score": chexbert_5["macro avg"]["f1-score"],
+            "chexbert-all_macro avg_f1-score": chexbert_all["macro avg"]["f1-score"]
+        }
+
+        return self._results_cache[key]
 
 
 class Rouge(nn.Module):
@@ -46,8 +80,8 @@ class Rouge(nn.Module):
         self.measure = measure
 
     def forward(self, items):
-        preds = list(zip(*items))[0]
-        refs = list(zip(*items))[1]
+        preds = [item[0] for item in items]
+        refs = [item[1] for item in items]
         scores = []
         for target_rec, prediction_rec in zip_longest(refs, preds):
             if target_rec is None or prediction_rec is None:
@@ -101,6 +135,8 @@ class RadSum(Task):
 
     def test_docs(self):
         if self.has_test_docs():
+            # test = datasets.arrow_dataset.Dataset.from_dict(self.dataset["test"][:2])
+            # return test
             return self.dataset["test"]
 
     def _process_doc(self, doc):
@@ -110,6 +146,8 @@ class RadSum(Task):
         return [rf.greedy_until(ctx, {'until': ["\n"]})]
 
     def aggregation(self):
+        chexbert_metrics = F1CheXbertWrapper()
+
         return {
             "rougeL": Rouge("rougeL"),
             "rouge1": Rouge("rouge1"),
@@ -118,6 +156,12 @@ class RadSum(Task):
             "rougeL-Rec": Rouge("rougeL", measure="recall"),
             "rougeL-F1": Rouge("rougeL", measure="fmeasure"),
             "F1RadGraph": F1RadGraphWrapper("simple"),
+            "chexbert-5_micro avg_f1-score": lambda items: F1CheXbertWrapper()(items, "chexbert-5_micro avg_f1-score"),
+            "chexbert-all_micro avg_f1-score": lambda items: F1CheXbertWrapper()(items,
+                                                                                 "chexbert-all_micro avg_f1-score"),
+            "chexbert-5_macro avg_f1-score": lambda items: F1CheXbertWrapper()(items, "chexbert-5_macro avg_f1-score"),
+            "chexbert-all_macro avg_f1-score": lambda items: F1CheXbertWrapper()(items,
+                                                                                 "chexbert-all_macro avg_f1-score")
         }
 
     def higher_is_better(self):
@@ -129,6 +173,10 @@ class RadSum(Task):
             "rougeL-Rec": True,
             "rougeL-F1": True,
             "F1RadGraph": True,
+            "chexbert-5_micro avg_f1-score": True,
+            "chexbert-all_micro avg_f1-score": True,
+            "chexbert-5_macro avg_f1-score": True,
+            "chexbert-all_macro avg_f1-score": True
         }
 
 
@@ -138,17 +186,21 @@ class MimicCXRSum(RadSum):
     DATASET_NAME = None
 
     def doc_to_text(self, doc):
-        return f"Summarize these radiology report findings to impression. Findings:{doc['findings']} Impression:"
+        return f"Summarize these radiology report findings to impression. Findings: {doc['findings']} Impression:"
 
     def doc_to_target(self, doc):
         return " " + doc['impression']
 
     def process_results(self, doc, results):
         return {
-            "rouge1": (results, doc["impression"]),
-            "rouge2": (results, doc["impression"]),
-            "rougeL": (results, doc["impression"]),
-            "F1RadGraph": (results, doc["impression"])
+            "rouge1": (results[0].strip(), doc["impression"]),
+            "rouge2": (results[0].strip(), doc["impression"]),
+            "rougeL": (results[0].strip(), doc["impression"]),
+            "F1RadGraph": (results[0].strip(), doc["impression"]),
+            "chexbert-5_micro avg_f1-score": (results[0].strip(), doc["impression"]),
+            "chexbert-all_micro avg_f1-score": (results[0].strip(), doc["impression"]),
+            "chexbert-5_macro avg_f1-score": (results[0].strip(), doc["impression"]),
+            "chexbert-all_macro avg_f1-score": (results[0].strip(), doc["impression"])
         }
 
 
@@ -158,17 +210,17 @@ class MimicIIISum(RadSum):
     DATASET_NAME = None
 
     def doc_to_text(self, doc):
-        return f"Summarize these radiology report findings to impression. Findings:{doc['findings']} Impression:"
+        return f"Summarize these radiology report findings to impression. Findings: {doc['findings']} Impression:"
 
     def doc_to_target(self, doc):
         return " " + doc['impression']
 
     def process_results(self, doc, results):
         return {
-            "rouge1": (results, doc["impression"]),
-            "rouge2": (results, doc["impression"]),
-            "rougeL": (results, doc["impression"]),
-            "F1RadGraph": (results, doc["impression"])
+            "rouge1": (results[0], doc["impression"]),
+            "rouge2": (results[0], doc["impression"]),
+            "rougeL": (results[0], doc["impression"]),
+            "F1RadGraph": (results[0], doc["impression"])
         }
 
 
@@ -180,7 +232,7 @@ class ProblemListSum(RadSum):
     def doc_to_text(self, doc):
         return f"Summarize this Electronic Health Record Progress Note into " \
                f"Active Diagnoses and Problems (at most 10, comma separated). \n" \
-               f"Progress Note:{doc['inputs']} \n" \
+               f"Progress Note: {doc['inputs']} \n" \
                f"Active Diagnoses and Problems:"
 
     def process_target(self, target):
@@ -191,9 +243,9 @@ class ProblemListSum(RadSum):
 
     def process_results(self, doc, results):
         return {
-            "rougeL-Prec": (results, self.process_target(doc["target"])),
-            "rougeL-Rec": (results, self.process_target(doc["target"])),
-            "rougeL-F1": (results, self.process_target(doc["target"]))
+            "rougeL-Prec": (results[0], self.process_target(doc["target"])),
+            "rougeL-Rec": (results[0], self.process_target(doc["target"])),
+            "rougeL-F1": (results[0], self.process_target(doc["target"]))
         }
 
 
@@ -213,9 +265,9 @@ class ConsumerHealthQuestion(RadSum):
 
     def process_results(self, doc, results):
         return {
-            "rouge1": (results, doc["target"]),
-            "rouge2": (results, doc["target"]),
-            "rougeL": (results, doc["target"])
+            "rouge1": (results[0], doc["target"]),
+            "rouge2": (results[0], doc["target"]),
+            "rougeL": (results[0], doc["target"])
         }
 
 
@@ -239,7 +291,7 @@ class DialogueToNoteSum(RadSum):
 
     def process_results(self, doc, results):
         return {
-            "rouge1": (results, doc["target"]),
-            "rouge2": (results, doc["target"]),
-            "rougeL": (results, doc["target"])
+            "rouge1": (results[0], doc["target"]),
+            "rouge2": (results[0], doc["target"]),
+            "rougeL": (results[0], doc["target"])
         }

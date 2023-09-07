@@ -44,7 +44,8 @@ setuptools.setup(
         "transformers>=4.1",
         "zstandard",
         "accelerate>=0.17.1",
-        "radgraph"
+        "radgraph",
+        "f1chexbert"
     ],
     extras_require={
         "dev": ["black", "flake8", "pre-commit", "pytest", "pytest-cov"],
