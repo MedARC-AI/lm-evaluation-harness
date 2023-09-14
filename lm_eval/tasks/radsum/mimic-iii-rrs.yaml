@@ -1,0 +1,23 @@
+group: radsum
+task: mimic-iii-rrs
+dataset_path: medarc/mimic-iii-rrs
+dataset_name: null
+output_type: greedy_until
+training_split: train
+validation_split: validation
+test_split: test
+doc_to_text: "Summarize these radiology report findings to impression. Findings: {{findings}} Impression:"
+doc_to_target: "{{impression}}"
+metric_list:
+  - metric: !function metrics.rougeL
+    aggregation: !function metrics.AggRougeL
+    higher_is_better: true
+  - metric: !function metrics.rouge1
+    aggregation: !function metrics.AggRouge1
+    higher_is_better: true
+  - metric: !function metrics.rouge2
+    aggregation: !function metrics.AggRouge2
+    higher_is_better: true
+  - metric: !function metrics.RadGraphF1
+    aggregation: !function metrics.AggF1RadGraph
+    higher_is_better: true
