@@ -1,0 +1,28 @@
+include: mimic-iii-rrs.yaml
+task: mimic-cxr-rrs
+dataset_path: medarc/mimic-cxr-rrs
+metric_list:
+  - metric: !function metrics.rougeL
+    aggregation: !function metrics.AggRougeL
+    higher_is_better: true
+  - metric: !function metrics.rouge1
+    aggregation: !function metrics.AggRouge1
+    higher_is_better: true
+  - metric: !function metrics.rouge2
+    aggregation: !function metrics.AggRouge2
+    higher_is_better: true
+  - metric: !function metrics.RadGraphF1
+    aggregation: !function metrics.AggF1RadGraph
+    higher_is_better: true
+  - metric: !function metrics.chexbert_five_micro_avg_f1_score
+    aggregation: !function metrics.agg_chexbert_five_micro_avg_f1_score
+    higher_is_better: true
+  - metric: !function metrics.chexbert_all_micro_avg_f1_score
+    aggregation: !function metrics.agg_chexbert_all_micro_avg_f1_score
+    higher_is_better: true
+  - metric: !function metrics.chexbert_five_macro_avg_f1_score
+    aggregation: !function metrics.agg_chexbert_five_macro_avg_f1_score
+    higher_is_better: true
+  - metric: !function metrics.chexbert_all_macro_avg_f1_score
+    aggregation: !function metrics.agg_chexbert_all_macro_avg_f1_score
+    higher_is_better: true
