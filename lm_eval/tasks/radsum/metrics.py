@@ -46,6 +46,7 @@ class Rouge(nn.Module):
     def forward(self, items):
         preds = [item[0] for item in items]
         refs = [item[1] for item in items]
+        print(len(preds))
         scores = []
         for target_rec, prediction_rec in zip_longest(refs, preds):
             if target_rec is None or prediction_rec is None:

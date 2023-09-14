@@ -8,6 +8,9 @@ validation_split: validation
 test_split: test
 doc_to_text: "Summarize this Electronic Health Record Progress Note into Active Diagnoses and Problems (at most 10, comma separated). Progress Note: {{inputs}} Active Diagnoses and Problems:"
 doc_to_target: "{{target}}"
+#need to put somewhere
+#  def process_target(self, target):
+#        return ",".join(ast.literal_eval(target))
 metric_list:
   - metric: !function metrics.rougeL
     aggregation: !function metrics.AggRougeL
