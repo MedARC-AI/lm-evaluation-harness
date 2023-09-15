@@ -135,8 +135,8 @@ class RadSum(Task):
 
     def test_docs(self):
         if self.has_test_docs():
-            # test = datasets.arrow_dataset.Dataset.from_dict(self.dataset["test"][:2])
-            # return test
+            test = datasets.arrow_dataset.Dataset.from_dict(self.dataset["test"][:2])
+            return test
             return self.dataset["test"]
 
     def _process_doc(self, doc):
@@ -156,11 +156,11 @@ class RadSum(Task):
             "rougeL-Rec": Rouge("rougeL", measure="recall"),
             "rougeL-F1": Rouge("rougeL", measure="fmeasure"),
             "F1RadGraph": F1RadGraphWrapper("simple"),
-            "chexbert-5_micro avg_f1-score": lambda items: F1CheXbertWrapper()(items, "chexbert-5_micro avg_f1-score"),
-            "chexbert-all_micro avg_f1-score": lambda items: F1CheXbertWrapper()(items,
+            "chexbert-5_micro avg_f1-score": lambda items: chexbert_metrics(items, "chexbert-5_micro avg_f1-score"),
+            "chexbert-all_micro avg_f1-score": lambda items: chexbert_metrics(items,
                                                                                  "chexbert-all_micro avg_f1-score"),
-            "chexbert-5_macro avg_f1-score": lambda items: F1CheXbertWrapper()(items, "chexbert-5_macro avg_f1-score"),
-            "chexbert-all_macro avg_f1-score": lambda items: F1CheXbertWrapper()(items,
+            "chexbert-5_macro avg_f1-score": lambda items: chexbert_metrics(items, "chexbert-5_macro avg_f1-score"),
+            "chexbert-all_macro avg_f1-score": lambda items: chexbert_metrics(items,
                                                                                  "chexbert-all_macro avg_f1-score")
         }
 
