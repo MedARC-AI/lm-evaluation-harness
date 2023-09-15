@@ -104,11 +104,8 @@ TASK_REGISTRY = {
     "dialogue_to_note": radsum.DialogueToNoteSum,
     "problem_list_sum": radsum.ProblemListSum,
     "medqa_4options": medqa.MedQA4Options,
-<<<<<<< HEAD
     "medmcqa": medmcqa.MedMCQA,
-=======
     "mednli": mednli.MedNLI,
->>>>>>> c3afcec0a25b8b38052dd9407e770cefae0439bf
     "babi": babi.Babi,
     # GLUE
     "cola": glue.CoLA,
