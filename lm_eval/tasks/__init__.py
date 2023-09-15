@@ -67,6 +67,7 @@ from . import csatqa
 from . import haerae
 from . import radsum
 from . import medqa
+from . import medmcqa
 
 ########################################
 # Translation tasks
@@ -102,6 +103,7 @@ TASK_REGISTRY = {
     "dialogue_to_note": radsum.DialogueToNoteSum,
     "problem_list_sum": radsum.ProblemListSum,
     "medqa_4options": medqa.MedQA4Options,
+    "medmcqa": medmcqa.MedMCQA,
     "babi": babi.Babi,
     # GLUE
     "cola": glue.CoLA,
