@@ -135,8 +135,8 @@ class RadSum(Task):
 
     def test_docs(self):
         if self.has_test_docs():
-            test = datasets.arrow_dataset.Dataset.from_dict(self.dataset["test"][:2])
-            return test
+            #test = datasets.arrow_dataset.Dataset.from_dict(self.dataset["test"][:2])
+            #return test
             return self.dataset["test"]
 
     def _process_doc(self, doc):
