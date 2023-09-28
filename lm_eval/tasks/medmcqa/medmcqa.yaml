@@ -5,7 +5,7 @@ training_split: train
 validation_split: validation
 test_split: validation
 doc_to_text: !function utils_medmcqa.doc_to_text
-doc_to_target: cop
+doc_to_target: "{{cop}}"
 doc_to_choice: [ 'A','B','C','D' ]
 should_decontaminate: true
 doc_to_decontamination_query: "{{question}}"
