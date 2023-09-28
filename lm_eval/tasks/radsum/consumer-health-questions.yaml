@@ -1,12 +1,12 @@
 group: radsum
-task: problem-list-sum
-dataset_path: medarc/problem_list_summarization
+task: consumer-health-questions
+dataset_path: medarc/consumer_health_questions
 dataset_name: null
 output_type: greedy_until
 training_split: train
 validation_split: validation
 test_split: test
-doc_to_text: "Summarize this Electronic Health Record Progress Note into Active Diagnoses and Problems (at most 10, comma separated). Progress Note: {{inputs}} Active Diagnoses and Problems:"
+doc_to_text: "Summarize this consumer health questions into a condensed question expressing the minimum information required to find correct answers to the original question. Consumer health questions: {{inputs}} Condensed question:"
 doc_to_target: "{{target}}"
 metric_list:
   - metric: !function metrics.rougeL
