@@ -17,8 +17,3 @@ def doc_to_text(doc) -> str:
         prompt += f"{choice.upper()}. {option}\n"
     prompt += "Answer:"
     return prompt
-
-
-def doc_to_target(doc) -> int:
-    choices = ['A','B','C','D']
-    return choices.index(doc["cop"].strip())
