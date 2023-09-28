@@ -1,31 +1,3 @@
-### Todo
-
-[x] mimic-iii-rrs<br/>
-[x] mimic-cxr-rrs<br/>
-[x] problem-list-sum<br/>
-[x] consumer-health-questions<br/>
-[x] dialogue2note-sum<br/>
-[x] mednli<br/>
-[x] medmcqa<br/>
-[x] pubmed_qa (tanishq) <br/>
-[x] medqa_4options<br/>
-
-
-### Normal
-
-python main.py \
---model hf \
---model_args pretrained=EleutherAI/pythia-160m \
---tasks medqa_4options \
---device cuda:0 \
---limit 5
-
-python scripts/write_out.py \
---tasks medqa_4options \
---num_fewshot 2 \
---num_examples 5 \
---output_base_path write_out
-
 ### Multi-GPU Evaluation with Hugging Face accelerate
 
 The Language Model Evaluation Harness is the backend for 🤗 Hugging Face's popular [Open LLM Leaderboard](https://huggingface.co/spaces/HuggingFaceH4/open_llm_leaderboard), has been used in [hundreds of papers](https://scholar.google.com/scholar?oi=bibs&hl=en&authuser=2&cites=15052937328817631261,4097184744846514103,17476825572045927382,18443729326628441434,12854182577605049984) is used internally by dozens of companies including NVIDIA, Cohere, Nous Research, Booz Allen Hamilton, and Mosaic ML.
@@ -238,7 +210,3 @@ In general, we following the following priority list for addressing concerns abo
 These are guidelines and not rules, and can be overruled in special circumstances.
 
 We try to prioritize agreement with the procedures used by other groups to decrease the harm when people inevitably compare runs across different papers despite our discouragement of the practice. Historically, we also prioritized the implementation from "Language Models are Few Shot Learners" as our original goal was specifically to compare results with that paper.
-
-### Support
-
-The best way to get support is to open an issue on this repo or join the EleutherAI discord server](https://discord.gg/eleutherai). The `#lm-thunderdome` channel is dedicated to developing this project and the `#release-discussion` channel is for receiving support for our releases.

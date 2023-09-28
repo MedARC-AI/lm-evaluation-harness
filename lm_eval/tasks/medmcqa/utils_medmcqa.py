@@ -22,6 +22,11 @@ def doc_to_text(doc) -> str:
 
 
 def doc_to_target(doc) -> int:
+<<<<<<< HEAD
     choices = ["a", "b", "c", "d"]
     return choices.index(doc["label"].strip())
 >>>>>>> moving multiple tasks
+=======
+    choices = ['A','B','C','D']
+    return choices.index(doc["cop"].strip())
+>>>>>>> minor fix
