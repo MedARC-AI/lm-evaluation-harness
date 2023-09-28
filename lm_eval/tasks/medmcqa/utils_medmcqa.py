@@ -20,5 +20,5 @@ def doc_to_text(doc) -> str:
 
 
 def doc_to_target(doc) -> int:
-    choices = ["a", "b", "c", "d"]
-    return choices.index(doc["label"].strip())
+    choices = ['A','B','C','D']
+    return choices.index(doc["cop"].strip())
