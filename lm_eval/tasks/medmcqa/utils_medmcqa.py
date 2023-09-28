@@ -17,16 +17,8 @@ def doc_to_text(doc) -> str:
         prompt += f"{choice.upper()}. {option}\n"
     prompt += "Answer:"
     return prompt
-<<<<<<< HEAD
-=======
 
 
 def doc_to_target(doc) -> int:
-<<<<<<< HEAD
     choices = ["a", "b", "c", "d"]
     return choices.index(doc["label"].strip())
->>>>>>> moving multiple tasks
-=======
-    choices = ['A','B','C','D']
-    return choices.index(doc["cop"].strip())
->>>>>>> minor fix
