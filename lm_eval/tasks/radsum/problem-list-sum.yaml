@@ -9,11 +9,14 @@ test_split: test
 doc_to_text: "Summarize this Electronic Health Record Progress Note into Active Diagnoses and Problems (at most 10, comma separated). Progress Note: {{inputs}} Active Diagnoses and Problems:"
 doc_to_target: "{{target}}"
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 #need to put somewhere
 #  def process_target(self, target):
 #        return ",".join(ast.literal_eval(target))
 >>>>>>> radsum half
+=======
+>>>>>>> moving multiple tasks
 metric_list:
   - metric: !function metrics.rougeL
     aggregation: !function metrics.AggRougeL
@@ -24,9 +27,12 @@ metric_list:
   - metric: !function metrics.rouge2
     aggregation: !function metrics.AggRouge2
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     higher_is_better: true
   - metric: !function metrics.RadGraphF1
     aggregation: !function metrics.AggF1RadGraph
 >>>>>>> radsum half
+=======
+>>>>>>> moving multiple tasks
     higher_is_better: true
