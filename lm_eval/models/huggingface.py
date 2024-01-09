@@ -851,7 +851,15 @@ class HFLM(LM):
         grouper = utils.Grouper(requests, lambda x: str(x.args[1]))
         for key, reqs in grouper.get_grouped().items():
             # within each set of reqs for given kwargs, we reorder by token length, descending.
-            re_ords[key] = utils.Reorderer([req.args for req in reqs], _collate)
+            group_args = []
+            for req in reqs:
+                if req.shuffle_choices is None:
+                    args = (req.args[0], req.args[1], None)
+                else:
+                    addl_input, unshuffle_answer_callback = req.shuffle_choices()
+                    args = (req.args[0] + addl_input, req.args[1], unshuffle_answer_callback)
+                group_args.append(args)
+            re_ords[key] = utils.Reorderer(group_args, _collate)
 
         pbar = tqdm(total=len(requests), disable=(self.rank != 0))
         if self.batch_size == "auto":
@@ -874,7 +882,7 @@ class HFLM(LM):
                 else None,
             )
             for chunk in chunks:
-                contexts, all_gen_kwargs = zip(*chunk)
+                contexts, all_gen_kwargs, callbacks = zip(*chunk)
                 # we assume all gen kwargs in the batch are the same
                 # this is safe to assume because the `grouper` object ensures it.
                 gen_kwargs = all_gen_kwargs[0]
@@ -930,7 +938,7 @@ class HFLM(LM):
                 )
 
                 cont_toks_list = cont.tolist()
-                for cont_toks, context in zip(cont_toks_list, contexts):
+                for (cont_toks, context, callback) in zip(cont_toks_list, contexts, callbacks):
                     # discard context + left-padding toks if using causal decoder-only LM
                     if self.AUTO_MODEL_CLASS == transformers.AutoModelForCausalLM:
                         cont_toks = cont_toks[context_enc.shape[1] :]
@@ -944,6 +952,8 @@ class HFLM(LM):
                             # for seq2seq case where self.tok_decode(self.eot_token_id) = ''
                             s = s.split(term)[0]
 
+                    if callback is not None:
+                        s = callback(s)
                     res[key].append(s)
 
                     self.cache_hook.add_partial(
