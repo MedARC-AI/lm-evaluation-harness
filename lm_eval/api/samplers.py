@@ -1,11 +1,13 @@
 import numpy as np
 
-from lm_eval.tasks.pubmedqa.mistral_embeddings import initialize_embedding_model, get_question_embedding
+
+from lm_eval.api.embeddings import get_embedding_instance
 
 
 class ContextSampler:
     def __init__(
-            self, docs, task, fewshot_indices=None, rnd=None, fewshot_embedding_col=None, fewshot_embedding_model=None
+            self, docs, task, fewshot_indices=None, rnd=None, fewshot_embedding_col=None, fewshot_embedding_model=None,
+            fewshot_embedding_task_description=None,
     ) -> None:
         self.rnd = rnd
         assert self.rnd, "must pass rnd to FewShotSampler!"
@@ -21,10 +23,10 @@ class ContextSampler:
         self.doc_to_choice = self.task.doc_to_choice
 
         self.fewshot_embedding_col = fewshot_embedding_col
-        if fewshot_embedding_model is not None:
-            # TODO dont hardcode device
-            # TODO Use fewshot_embedding_model to look up embedding registry
-            self.embedder = initialize_embedding_model('cuda:0')
+        if fewshot_embedding_col is not None:
+            self.fewshot_embedder = get_embedding_instance(
+                fewshot_embedding_col, fewshot_embedding_model, fewshot_embedding_task_description
+            )
 
         self.docs = docs  # HF dataset split, provided by task._fewshot_docs()
         if fewshot_indices:  # subset few-shot docs from

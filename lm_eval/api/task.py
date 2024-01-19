@@ -664,7 +664,8 @@ class ConfigurableTask(Task):
             )(
                 list(self.fewshot_docs()), self, rnd=random.Random(1234),
                 fewshot_embedding_col=None if self.config.fewshot_config is None else self.config.fewshot_config.get("fewshot_embedding_col", None),
-                fewshot_embedding_model=None if self.config.fewshot_config is None else self.config.fewshot_config.get("fewshot_embedding_model", None)
+                fewshot_embedding_model=None if self.config.fewshot_config is None else self.config.fewshot_config.get("fewshot_embedding_model", None),
+                fewshot_embedding_task_description=None if self.config.fewshot_config is None else self.config.fewshot_config.get("fewshot_embedding_task_description", None),
             )
 
         if self.has_test_docs():
