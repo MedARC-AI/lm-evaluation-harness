@@ -22,10 +22,10 @@ class ContextSampler:
         self.doc_to_target = self.task.doc_to_target
         self.doc_to_choice = self.task.doc_to_choice
 
-        self.fewshot_embedding_col = fewshot_embedding_col
+        self.fewshot_embedder = None
         if fewshot_embedding_col is not None:
-            self.fewshot_embedder = get_embedding_instance(
-                fewshot_embedding_col, fewshot_embedding_model, fewshot_embedding_task_description
+            self.fewshot_embedder = get_embedding_instance(fewshot_embedding_model)(
+                fewshot_embedding_col, fewshot_embedding_task_description
             )
 
         self.docs = docs  # HF dataset split, provided by task._fewshot_docs()
@@ -124,26 +124,19 @@ class NearestNeighborsSampler(ContextSampler):
 
     def sample(self, doc, n) -> None:
         """
+        Dynamic retrieval-based fewshot selection.
         Use the embedding `n` samples in order from the specified split.
-        Used for tasks with "canonical" ordered fewshot examples, such as MMLU and CMMLU.
         """
         assert n <= len(
             self.docs
         ), f"Error: number of fewshot samples requested exceeds the {len(self.docs)} that are available."
 
-        q_embed = np.array(get_question_embedding(
-            doc[self.fewshot_embedding_col], self.embedder['model'], self.embedder['tokenizer']
-        ))
+        q_embed = self.fewshot_embedder(doc)
 
-        # TODO: Should all have this column so take this out once preprocess_pubmedqa is run.
-        default = np.random.random((4096, ))
-        fewshot_embeds = np.array(list(map(
-            lambda doc: doc.get(self.fewshot_embedding_col + '_embed', default), self.docs
-        )))
+        fewshot_embeds = np.array(list(map(lambda doc: self.fewshot_embedder(doc), self.docs)))
 
         sims = self.cosine_similarity(q_embed, fewshot_embeds)
         top_indices = np.argsort(-sims)[:n]
-
         return list(map(lambda idx: self.docs[idx], top_indices))
 
 

@@ -1,3 +1,5 @@
+import os
+
 import argparse
 from datasets import DatasetDict
 from openai import AzureOpenAI
@@ -8,8 +10,10 @@ import regex as re
 
 import lm_eval
 from lm_eval.models.huggingface import HFLM
-from lm_eval.models.openai_completions import OpenaiChatCompletionsLM
-from lm_eval.tasks.pubmedqa.mistral_embeddings import initialize_embedding_model, get_question_embedding
+from lm_eval.api.embeddings import MistralEmbeddings
+
+
+EMBEDDING_TASK_DESCRIPTION = 'Given a medical question, retrieve related medical questions'
 
 
 DATASET_TO_INPUT_TYPE = {
@@ -92,10 +96,8 @@ def build_prompt(doc, task):
 
     return prompt
 
-def generate_self_cot(doc, task, lm_obj, embeddings, add_self_cot=True, consistency_filter=True):
-    question = doc[DATASET_TO_QUESTION_COL[task.config.task]]
-    q_embed = get_question_embedding(question, embeddings['model'], embeddings['tokenizer'])
-
+def generate_self_cot(doc, task, lm_obj, embedding_model, add_self_cot=True, consistency_filter=True):
+    q_embed = embedding_model(doc)
     new_cols = {f'{DATASET_TO_QUESTION_COL[task.config.task]}_embed': q_embed, 'rationale': ''}
     if not add_self_cot:  # We don't pre-compute CoT for every split. Only "fewshot_split"
         return new_cols
@@ -181,7 +183,10 @@ if __name__ == '__main__':
     task = lm_eval.tasks.get_task_dict(args.task)[args.task]
 
     print('Initializing embeddings...')
-    embeddings = initialize_embedding_model(args.device)
+    embedding_model = MistralEmbeddings(
+        fewshot_col=DATASET_TO_QUESTION_COL[args.dataset], device=args.device,
+        task_description=EMBEDDING_TASK_DESCRIPTION
+    )
 
     # Download the task from HF or HF cache
     task.download()
@@ -200,10 +205,6 @@ if __name__ == '__main__':
             cot_data = cot_data.select(sample_idxs)
 
         if args.cot_model_type == 'openai':
-            # lm_obj = OpenaiChatCompletionsLM(
-            #     model=args.cot_model,
-            # )
-            import os
             assert 'OPENAI_API_KEY' in os.environ
             lm_obj = AzureOpenAI(
                 api_key=os.environ.get('OPENAI_API_KEY'),
@@ -220,7 +221,7 @@ if __name__ == '__main__':
 
         cot_data_w_cot = cot_data.map(
             lambda doc: generate_self_cot(
-                doc, task, lm_obj, embeddings, add_self_cot=add_self_cot,
+                doc, task, lm_obj, embedding_model, add_self_cot=add_self_cot,
                 consistency_filter=not args.remove_consistency_filter
             )
         )

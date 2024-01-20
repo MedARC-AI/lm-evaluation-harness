@@ -4,13 +4,6 @@ import torch.nn.functional as F
 from transformers import AutoTokenizer, AutoModel
 
 
-def get_embedding_instance(fewshot_col, model, task_description):
-    if model is None:
-        return LookupEmbeddings(fewshot_col=fewshot_col)
-    elif model == 'mistral':
-        return MistralEmbeddings(fewshot_col=fewshot_col, task_description=task_description)
-
-
 class Embeddings:
     def __init__(self, fewshot_col, task_description='', device='cuda') -> None:
         self.fewshot_col = fewshot_col
@@ -18,8 +11,11 @@ class Embeddings:
         self.device = device
         self.post_init()
 
-    def post_init():
+    def post_init(self):
         pass
+
+    def __call__(self, doc):
+        return self.get_embedding(doc)
 
     def get_embedding(self, doc):
         pass
@@ -76,3 +72,20 @@ class MistralEmbeddings(Embeddings):
         outputs = self.model(**batch_dict)
         embeddings = self._last_token_pool(outputs.last_hidden_state, batch_dict['attention_mask'])
         return embeddings.cpu().detach().numpy().tolist()[0]
+
+
+EMBEDDING_REGISTRY = {
+    "mistral": MistralEmbeddings,
+    'lookup': LookupEmbeddings,
+}
+
+
+def get_embedding_instance(name):
+    if name is None:
+        return LookupEmbeddings
+    try:
+        return EMBEDDING_REGISTRY[name]
+    except KeyError:
+        raise ValueError(
+            f"Attempted to use embedding '{name}', but no embedding for this name found! Supported model names: {', '.join(EMBEDDING_REGISTRY.keys())}"
+        )

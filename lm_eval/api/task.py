@@ -67,7 +67,7 @@ class TaskConfig(dict):
     doc_to_fewshot_text: Union[Callable, str] = None
     doc_to_target: Union[Callable, str] = None
     doc_to_choice: Union[Callable, str, dict, list] = None
-    doc_to_choice_list: Union[Callable, str] = None
+    doc_to_options: Union[Callable, str, dict, list] = None
     shuffle_choices: bool = False
     process_results: Union[Callable, str] = None
     use_prompt: str = None
@@ -885,7 +885,6 @@ class ConfigurableTask(Task):
             print(type(doc_to_text))
             raise TypeError
 
-
     def doc_to_text(self, doc):
         if self.prompt is not None:
             doc_to_text = self.prompt
@@ -919,7 +918,7 @@ class ConfigurableTask(Task):
         else:
             print(type(doc_to_text))
             raise TypeError
-
+    
     def doc_to_target(self, doc: dict) -> Union[int, str, list]:
         if self.prompt is not None:
             doc_to_target = self.prompt
@@ -964,7 +963,7 @@ class ConfigurableTask(Task):
         else:
             raise TypeError
 
-    def doc_to_choice(self, doc: Any) -> List[str]:
+    def doc_to_choice(self, doc: Any, return_letters=False) -> List[str]:
         if self.prompt is not None:
             doc_to_choice = self.prompt
         elif self.config.doc_to_choice is None:
@@ -979,7 +978,7 @@ class ConfigurableTask(Task):
         elif type(doc_to_choice) == dict:
             return list(doc_to_choice.values())
         elif callable(doc_to_choice):
-            return doc_to_choice(doc)
+            return doc_to_choice(doc, return_letters)
         elif hasattr(doc_to_choice, "get_answer_choices_list"):
             return doc_to_choice.get_answer_choices_list(doc)
         else:
@@ -1036,7 +1035,13 @@ class ConfigurableTask(Task):
             return request_list
 
         elif self.OUTPUT_TYPE == "generate_until":
-            arguments = (ctx, self.config.generation_kwargs)
+            if self.config.shuffle_choices is None:
+                arguments = (ctx, self.config.generation_kwargs)
+            else:
+                # The generate function will need access to both the letter choices and respective options
+                # Pack them all into the first argument which will be unpacked in the generate until file
+                first_arg = ctx, self.doc_to_choice(doc, True), self.doc_to_choice(doc, False)
+                arguments = (first_arg, self.config.generation_kwargs)
 
         return Instance(
             request_type=self.OUTPUT_TYPE, doc=doc, arguments=arguments, idx=0, **kwargs

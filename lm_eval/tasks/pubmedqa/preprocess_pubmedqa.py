@@ -17,29 +17,38 @@ def letter_target(doc) -> int:
     return CHOICES.index(doc['final_decision'])
 
 
-def shuffled_choice_list(shuffle=True):
-    order = np.arange(len(CHOICES))
+def doc_to_choice(doc, return_letters=True):
+    return ["A", "B", "C"] if return_letters else CHOICES
+
+
+def shuffled_choice_list(letters, options, shuffle=True):
+    n = len(letters)
+    order = np.arange(n)
     if shuffle:
         np.random.shuffle(order)
 
-    choices_shuffled = [CHOICES[i] for i in order]
-    letters = ['A', 'B', 'C']
+    options_shuffled = [options[i] for i in order]
     unshuffle_map = {letters[new_idx]: letters[old_idx] for new_idx, old_idx in enumerate(order)}
 
     def unshuffle_answer_callback(output):
         pattern = r'<{0,2}Final Answer:?>{0,2}:?\s?([A-C])'
-        match = re.search(pattern, output)
+        match = re.search(pattern, output, flags=re.IGNORECASE)
         if match is None:
-            pattern = r'answer is ([A-C])'
-            match = re.search(pattern, output)
+            pattern = r'answer is\W*([A-C])'
+            match = re.search(pattern, output, flags=re.IGNORECASE)
             if match is None:
-                print('Answer Not Found. Returning shuffled answer which will likely be wrong!')
-                return output
-
+                option_str = '|'.join(list(map(re.escape, options)))
+                literal_pattern = r'<{0,2}Final Answer:?>{0,2}:?\s?(' + option_str + ')'
+                match = re.search(literal_pattern, output, flags=re.IGNORECASE)
+                if match is None:
+                    raise Exception(f'Answer Not Found! Check output below.\n{output}')
+                else:
+                    option_idx = options.index(match.group(1).strip())
+                    return output[:match.start()] + '<<Final Answer:>> ' + letters[option_idx]
         return output[:match.start()] + '<<Final Answer:>> ' + unshuffle_map[match.group(1).strip().upper()]
 
-    choices_shuffled_str = '\n'.join([f'{l}) {c}' for l, c in zip(letters, choices_shuffled)])
-    return "<<Choices:>>\n{}\n----\n<<Explanation:>>".format(choices_shuffled_str), unshuffle_answer_callback
+    shuffled_str = '\n'.join([f'{l}) {c}' for l, c in zip(letters, options_shuffled)])
+    return f'<<Choices:>>\n{shuffled_str}\n----\n<<Explanation:>>', unshuffle_answer_callback
 
 
 def doc_to_text_cot(doc):

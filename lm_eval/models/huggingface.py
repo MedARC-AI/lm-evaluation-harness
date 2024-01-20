@@ -856,8 +856,8 @@ class HFLM(LM):
                 if req.shuffle_choices is None:
                     args = (req.args[0], req.args[1], None)
                 else:
-                    addl_input, unshuffle_answer_callback = req.shuffle_choices()
-                    args = (req.args[0] + addl_input, req.args[1], unshuffle_answer_callback)
+                    addl_input, unshuffle_answer_callback = req.shuffle_choices(*req.args[0][1:])
+                    args = (req.args[0][0] + addl_input, req.args[1], unshuffle_answer_callback)
                 group_args.append(args)
             re_ords[key] = utils.Reorderer(group_args, _collate)
 

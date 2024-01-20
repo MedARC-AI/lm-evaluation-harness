@@ -1,7 +1,7 @@
 import argparse
 
 import lm_eval
-from lm_eval.models.huggingface import HFLM
+from lm_eval.models.vllm_causallms import VLLM
 
 
 DEBUG_MODEL = 'HuggingFaceM4/tiny-random-LlamaForCausalLM'
@@ -11,7 +11,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Debug for MedPrompt')
 
     parser.add_argument('--model', default='mistralai/Mistral-7B-Instruct-v0.2')
-    parser.add_argument('--max_examples', default=3, type=int)
+    parser.add_argument('--max_examples', default=2, type=int)
     parser.add_argument('--fewshot_override', default=None, type=int)
 
 
@@ -20,7 +20,7 @@ if __name__ == '__main__':
     if args.model == 'debug':
         args.model = DEBUG_MODEL
 
-    lm_obj = HFLM(
+    lm_obj = VLLM(
         pretrained=args.model,
         device='cuda',
         batch_size=1,
@@ -35,4 +35,8 @@ if __name__ == '__main__':
         tasks=['pubmedqa_medprompt'],
     )
 
-    print(results)
+    for task, metrics in results['results'].items():
+        print(task)
+        for k, v in metrics.items():
+            print(f'\t{k} -> {round(v, 3)}')
+        print('\n----\n')
