@@ -1,0 +1,42 @@
+task: pubmedqa_medprompt
+dataset_path: medarc/pubmedqa_medprompt_gpt-4_preprocessed
+output_type: generate_until
+training_split: train
+validation_split: validation
+test_split: test
+fewshot_split: training
+num_fewshot: 5
+fewshot_config:
+  sampler: nearest_neighbors
+  fewshot_embedding_col: QUESTION
+description: "Answer the following reading comprehension <<Question>> based on the <<Abstract>> below.\nFirst, think step by step and write an <<Explanation>> for reasoning through the question.\nThen, analyze your explanation and write <<Final Answer>> followed by a single letter corresponding to one of the choices below.\n----\n"
+doc_to_text: !function preprocess_pubmedqa.doc_to_text_medprompt
+doc_to_fewshot_text: !function preprocess_pubmedqa.doc_to_fewshot_text
+doc_to_choice: !function preprocess_pubmedqa.doc_to_choice
+doc_to_target: !function preprocess_pubmedqa.letter_target
+repeats: 5
+shuffle_choices: !function preprocess_pubmedqa.shuffled_choice_list
+generation_kwargs:
+  until:
+      - "</s>"
+      - "<<Abstract"
+      - "<<Question"
+      - "<<Choices"
+      - "<<Explanation"
+  do_sample: true
+  temperature: 0.5
+  top_k: 40
+  max_gen_toks: 1024
+filter_list:
+  - name: "get-answer"
+    filter:
+      - function: "regex"
+        regex_pattern: "(?<=<<Final Answer:>> )([A-C])"
+      - function: "majority_vote"
+      - function: "take_first"
+metric_list:
+  - metric: exact_match
+    aggregation: mean
+    higher_is_better: true
+metadata:
+  version: 1.0

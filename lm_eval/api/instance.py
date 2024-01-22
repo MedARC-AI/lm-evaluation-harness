@@ -8,8 +8,8 @@ class Instance:
     doc: dict
     arguments: tuple
     idx: int
-    metadata: Tuple[str, int, int] = field(
-        default_factory=lambda: (None, None, None)
+    metadata: Tuple[str, int, int, bool] = field(
+        default_factory=lambda: (None, None, None, False)
     )  # TODO: better typehints here
     resps: list = field(default_factory=list)
     filtered_resps: dict = field(default_factory=dict)
@@ -21,7 +21,7 @@ class Instance:
 
     def __post_init__(self) -> None:
         # unpack metadata field
-        self.task_name, self.doc_id, self.repeats = self.metadata
+        self.task_name, self.doc_id, self.repeats, self.shuffle_choices = self.metadata
 
     @property
     def args(self):

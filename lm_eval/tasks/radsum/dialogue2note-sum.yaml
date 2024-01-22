@@ -1,0 +1,20 @@
+group: radsum
+task: dialogue2note-sum
+dataset_path: medarc/Dialogue2Note_Summarization
+dataset_name: null
+output_type: greedy_until
+training_split: train
+validation_split: validation
+test_split: test
+doc_to_text: "Given the dialogue between a patient and a doctor, generate the Assessment and Plan section of a clinical note. Dialogue: {{inputs}} Assessment and Plan section:"
+doc_to_target: "{{target}}"
+metric_list:
+  - metric: !function metrics.rougeL
+    aggregation: !function metrics.AggRougeL
+    higher_is_better: true
+  - metric: !function metrics.rouge1
+    aggregation: !function metrics.AggRouge1
+    higher_is_better: true
+  - metric: !function metrics.rouge2
+    aggregation: !function metrics.AggRouge2
+    higher_is_better: true

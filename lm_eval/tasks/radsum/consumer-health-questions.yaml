@@ -1,0 +1,20 @@
+group: radsum
+task: consumer-health-questions
+dataset_path: medarc/consumer_health_questions
+dataset_name: null
+output_type: greedy_until
+training_split: train
+validation_split: validation
+test_split: test
+doc_to_text: "Summarize this consumer health questions into a condensed question expressing the minimum information required to find correct answers to the original question. Consumer health questions: {{inputs}} Condensed question:"
+doc_to_target: "{{target}}"
+metric_list:
+  - metric: !function metrics.rougeL
+    aggregation: !function metrics.AggRougeL
+    higher_is_better: true
+  - metric: !function metrics.rouge1
+    aggregation: !function metrics.AggRouge1
+    higher_is_better: true
+  - metric: !function metrics.rouge2
+    aggregation: !function metrics.AggRouge2
+    higher_is_better: true

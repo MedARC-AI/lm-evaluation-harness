@@ -1,15 +1,10 @@
 import abc
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 
 import re
 import ast
-import yaml
 import logging
-import evaluate
 import random
-import itertools
-import functools
-from tqdm import tqdm
 
 import datasets
 import numpy as np
@@ -20,7 +15,6 @@ from collections.abc import Callable
 from lm_eval import utils
 from lm_eval.api import samplers
 from lm_eval.api.instance import Instance
-from lm_eval.api.filter import FilterEnsemble
 
 from lm_eval.prompts import get_prompt
 from lm_eval.filters import build_filter_ensemble
@@ -28,7 +22,6 @@ from lm_eval.api.metrics import (
     mean,
     weighted_perplexity,
     bits_per_byte,
-    metric_max_over_ground_truths,
 )
 from lm_eval.api.registry import (
     get_metric,
@@ -36,7 +29,6 @@ from lm_eval.api.registry import (
     get_metric_aggregation,
     is_higher_better,
     DEFAULT_METRIC_REGISTRY,
-    OUTPUT_TYPE_REGISTRY,
     AGGREGATION_REGISTRY,
 )
 
@@ -72,8 +64,11 @@ class TaskConfig(dict):
     # see docs/advanced_task_guide.md for more info
     process_docs: Callable = None
     doc_to_text: Union[Callable, str] = None
+    doc_to_fewshot_text: Union[Callable, str] = None
     doc_to_target: Union[Callable, str] = None
     doc_to_choice: Union[Callable, str, dict, list] = None
+    doc_to_options: Union[Callable, str, dict, list] = None
+    shuffle_choices: bool = False
     process_results: Union[Callable, str] = None
     use_prompt: str = None
     description: str = ""
@@ -81,7 +76,7 @@ class TaskConfig(dict):
     fewshot_delimiter: str = "\n\n"
     fewshot_config: dict = None
     # runtime configuration options
-    num_fewshot: int = 0
+    num_fewshot: int = None
     # scoring options
     metric_list: list = None
     output_type: str = "generate_until"
@@ -91,7 +86,9 @@ class TaskConfig(dict):
     should_decontaminate: bool = False
     doc_to_decontamination_query: str = None
 
-    metadata: str = None  # by default, not used in the code. allows for users to pass arbitrary info to tasks
+    metadata: Union[
+        str, list
+    ] = None  # by default, not used in the code. allows for users to pass arbitrary info to tasks
 
     def __post_init__(self) -> None:
         if self.dataset_path and ("." in self.dataset_path):
@@ -124,6 +121,8 @@ class TaskConfig(dict):
                     "do_sample": False,
                 }
 
+        # If not set, asusme the fewshot template is the same as the eval doc
+        self.doc_to_fewshot_text = self.doc_to_fewshot_text or self.doc_to_text
         # TODO: how to make TaskConfigs be de- and re-serializable, even when using the !function constructor?
 
     def __getitem__(self, item):
@@ -359,14 +358,14 @@ class Task(abc.ABC):
             # sample fewshot context #TODO: need to offset doc_id by rank now!
             fewshot_ctx = self.fewshot_context(
                 doc,
-                self.config.num_fewshot,
+                0 if self.config.num_fewshot is None else self.config.num_fewshot,
             )
 
             # TODO: we should override self.config.repeats if doing greedy gen so users don't waste time+compute
             inst = self.construct_requests(
                 doc=doc,
                 ctx=fewshot_ctx,
-                metadata=(self.config["task"], doc_id, self.config.repeats),
+                metadata=(self.config["task"], doc_id, self.config.repeats, self.config.shuffle_choices),
             )
 
             if not isinstance(inst, list):
@@ -490,7 +489,7 @@ class Task(abc.ABC):
             labeled_examples = (
                 "\n\n".join(
                     [
-                        self.doc_to_text(doc) + self.doc_to_target(doc)
+                        self.doc_to_fewshot_text(doc) + self.doc_to_target(doc)
                         for doc in fewshotex
                     ]
                 )
@@ -662,7 +661,12 @@ class ConfigurableTask(Task):
                 self.config.fewshot_config.get("sampler", "default")
                 if self.config.fewshot_config
                 else "default"
-            )(list(self.fewshot_docs()), self, rnd=random.Random(1234))
+            )(
+                list(self.fewshot_docs()), self, rnd=random.Random(1234),
+                fewshot_embedding_col=None if self.config.fewshot_config is None else self.config.fewshot_config.get("fewshot_embedding_col", None),
+                fewshot_embedding_model=None if self.config.fewshot_config is None else self.config.fewshot_config.get("fewshot_embedding_model", None),
+                fewshot_embedding_task_description=None if self.config.fewshot_config is None else self.config.fewshot_config.get("fewshot_embedding_task_description", None),
+            )
 
         if self.has_test_docs():
             self.task_docs = self.test_docs()
@@ -775,7 +779,7 @@ class ConfigurableTask(Task):
         if self.config.fewshot_split is not None:
             return self.dataset[self.config.fewshot_split]
         else:
-            if self.config.num_fewshot > 0:
+            if (self.config.num_fewshot is not None) and (self.config.num_fewshot > 0):
                 eval_logger.warning(
                     f"Task '{self.config.task}': "
                     "num_fewshot > 0 but fewshot_split is None. "
@@ -847,6 +851,40 @@ class ConfigurableTask(Task):
         """
         return doc
 
+    def doc_to_fewshot_text(self, doc):
+        if self.prompt is not None:
+            doc_to_text = self.prompt
+        else:
+            doc_to_text = self.config.doc_to_fewshot_text
+
+        if type(doc_to_text) == int:
+            return doc_to_text
+        elif type(doc_to_text) == str:
+            if doc_to_text in self.features:
+                # if self.config.doc_to_choice is not None:
+                #     return self.doc_to_choice(doc)[doc[doc_to_text]]
+                # else:
+                return doc[doc_to_text]
+            else:
+                text_string = utils.apply_template(doc_to_text, doc)
+                if text_string.isdigit() and self._config.doc_to_choice is not None:
+                    return ast.literal_eval(text_string)
+                else:
+                    return text_string
+        elif callable(doc_to_text):
+            return doc_to_text(doc)
+        # Used when applying a Promptsource template
+        elif hasattr(doc_to_text, "apply"):
+            applied_prompt = doc_to_text.apply(doc)
+            if len(applied_prompt) == 2:
+                return applied_prompt[0]
+            else:
+                eval_logger.warning("Applied prompt returns empty string")
+                return self.config.fewshot_delimiter
+        else:
+            print(type(doc_to_text))
+            raise TypeError
+
     def doc_to_text(self, doc):
         if self.prompt is not None:
             doc_to_text = self.prompt
@@ -880,7 +918,7 @@ class ConfigurableTask(Task):
         else:
             print(type(doc_to_text))
             raise TypeError
-
+    
     def doc_to_target(self, doc: dict) -> Union[int, str, list]:
         if self.prompt is not None:
             doc_to_target = self.prompt
@@ -925,7 +963,7 @@ class ConfigurableTask(Task):
         else:
             raise TypeError
 
-    def doc_to_choice(self, doc: Any) -> List[str]:
+    def doc_to_choice(self, doc: Any, return_letters=False) -> List[str]:
         if self.prompt is not None:
             doc_to_choice = self.prompt
         elif self.config.doc_to_choice is None:
@@ -940,7 +978,7 @@ class ConfigurableTask(Task):
         elif type(doc_to_choice) == dict:
             return list(doc_to_choice.values())
         elif callable(doc_to_choice):
-            return doc_to_choice(doc)
+            return doc_to_choice(doc, return_letters)
         elif hasattr(doc_to_choice, "get_answer_choices_list"):
             return doc_to_choice.get_answer_choices_list(doc)
         else:
@@ -997,7 +1035,13 @@ class ConfigurableTask(Task):
             return request_list
 
         elif self.OUTPUT_TYPE == "generate_until":
-            arguments = (ctx, self.config.generation_kwargs)
+            if self.config.shuffle_choices is None:
+                arguments = (ctx, self.config.generation_kwargs)
+            else:
+                # The generate function will need access to both the letter choices and respective options
+                # Pack them all into the first argument which will be unpacked in the generate until file
+                first_arg = ctx, self.doc_to_choice(doc, True), self.doc_to_choice(doc, False)
+                arguments = (first_arg, self.config.generation_kwargs)
 
         return Instance(
             request_type=self.OUTPUT_TYPE, doc=doc, arguments=arguments, idx=0, **kwargs
@@ -1111,7 +1155,7 @@ class ConfigurableTask(Task):
         elif self.OUTPUT_TYPE == "generate_until":
             gold = self.doc_to_target(doc)
             result = results[0]
-            if self.config.doc_to_choice is not None:
+            if self.config.doc_to_choice is not None and (type(gold) == int or gold.isnumeric()):
                 # If you set doc_to_choice,
                 # it assumes that doc_to_target returns a number.
                 choices = self.doc_to_choice(doc)

@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lm_eval"
-version = "1.0.0"
+version = "0.4.0"
 authors = [
-    {name="EleutherAI", email="contact@eleuther.ai"}
+    { name = "EleutherAI", email = "contact@eleuther.ai" }
 ]
 description = "A framework for evaluating language models"
 readme = "README.md"
@@ -36,6 +36,8 @@ dependencies = [
     "tqdm-multiprocess",
     "transformers>=4.1",
     "zstandard",
+    "radgraph",
+    "f1chexbert"
 ]
 
 [tool.setuptools.packages.find]
@@ -70,7 +72,8 @@ promptsource = [
 ]
 gptq = ["auto-gptq[triton] @ git+https://github.com/PanQiWei/AutoGPTQ"]
 anthropic = ["anthropic"]
-openai = ["openai", "tiktoken"]
+openai = ["openai>=1.3.5", "tiktoken"]
+vllm = ["vllm"]
 all = [
     "lm_eval[dev]",
     "lm_eval[testing]",
@@ -80,5 +83,6 @@ all = [
     "lm_eval[promptsource]",
     "lm_eval[gptq]",
     "lm_eval[anthropic]",
-    "lm_eval[openai]"
+    "lm_eval[openai]",
+    "lm_eval[vllm]",
 ]
